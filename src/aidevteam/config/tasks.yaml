@@ -1,17 +1,30 @@
-research_task:
+new_feature_request:
   description: >
-    Conduct a thorough research about {topic}
-    Make sure you find any interesting and relevant information given
-    the current year is {current_year}.
+    New feature request.
+    Users have a new feature they would like to implement in {project_name}.
+    Prompt the users to provide a brief description of the feature, then come up with an implement plan.
+    It is imperative that you gather the details by asking questions to the human users.
+    Create a ticket in JIRA to track the work, fill it with all the details
+    and assign it to the backend developer.
+    If you need help for the design, reach out to the users for architectural
+    questions and decisions
   expected_output: >
-    A list with 10 bullet points of the most relevant information about {topic}
-  agent: researcher
+    A fully specified JIRA ticket with all the details of the new feature,
+    including a description, acceptance criteria, and any relevant information.
+    The ticket should be assigned to the backend developer.
+  agent: business_analyst
 
-reporting_task:
+new_feature_implementation:
   description: >
-    Review the context you got and expand each topic into a full section for a report.
-    Make sure the report is detailed and contains any and all relevant information.
+    New feature implementation. Once the business analyst has created a JIRA ticket
+    for the new feature, the backend developer should implement it.
+    Use the information from the JIRA ticket to implement the new feature.
+    Add the implementation details to the ticket and update the status.
+    Make sure to add unit tests to cover the acceptance criteria mentioned in the ticket.
+    Once the feature is implemented, reach out to the users to get their feedback
+    and make any necessary adjustments.
   expected_output: >
-    A fully fledged report with the main topics, each with a full section of information.
-    Formatted as markdown without '```'
-  agent: reporting_analyst
+    A new branch in the repository with the implementation of the new feature,
+    including unit tests that cover the acceptance criteria mentioned in the ticket.
+    The JIRA ticket should be updated with the implementation details and the status.
+  agent: backend_developer

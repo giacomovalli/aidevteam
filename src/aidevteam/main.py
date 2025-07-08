@@ -8,6 +8,12 @@ from aidevteam.crew import Aidevteam
 
 warnings.filterwarnings("ignore", category=SyntaxWarning, module="pysbd")
 
+inputs = {
+        'project_name': 'PrimeMap',
+        'project_languages': "c#, Python, Typescript, SQL",
+        'project_frameworks': 'Microsoft .NET Core, Angular JS'
+    }
+
 # This main file is intended to be a way for you to run your
 # crew locally, so refrain from adding unnecessary logic into this file.
 # Replace with inputs you want to test with, it will automatically
@@ -17,10 +23,6 @@ def run():
     """
     Run the crew.
     """
-    inputs = {
-        'topic': 'AI LLMs',
-        'current_year': str(datetime.now().year)
-    }
     
     try:
         Aidevteam().crew().kickoff(inputs=inputs)
@@ -32,10 +34,6 @@ def train():
     """
     Train the crew for a given number of iterations.
     """
-    inputs = {
-        "topic": "AI LLMs",
-        'current_year': str(datetime.now().year)
-    }
     try:
         Aidevteam().crew().train(n_iterations=int(sys.argv[1]), filename=sys.argv[2], inputs=inputs)
 
@@ -56,10 +54,6 @@ def test():
     """
     Test the crew execution and returns the results.
     """
-    inputs = {
-        "topic": "AI LLMs",
-        "current_year": str(datetime.now().year)
-    }
     
     try:
         Aidevteam().crew().test(n_iterations=int(sys.argv[1]), eval_llm=sys.argv[2], inputs=inputs)

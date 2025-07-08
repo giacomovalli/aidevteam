@@ -1,10 +1,9 @@
 from crewai.tools import BaseTool
-from typing import Type, Optional, Dict, Any
+from typing import Type, Optional, Dict, Any, List
 from pydantic import BaseModel, Field
-import asyncio
 import json
-from mcp import ClientSession, StdioServerParameters
-from mcp.client.stdio import stdio_client
+from crewai_tools import MCPServerAdapter
+from mcp.types import Tool as MCPTool
 
 
 class MCPToolInput(BaseModel):
@@ -12,61 +11,49 @@ class MCPToolInput(BaseModel):
     tool_name: str = Field(..., description="Name of the MCP tool to call")
     arguments: Dict[str, Any] = Field(default_factory=dict, description="Arguments to pass to the MCP tool")
 
-class MCPTool(BaseTool):
-    name: str = "MCP Tool"
+class MCPAdapterTool(BaseTool):
+    name: str = "MCP Adapter Tool"
     description: str = (
-        "Execute tools from an MCP server. Specify the tool name and arguments to call any available MCP tool."
+        "Execute tools from an MCP server using MCPServerAdapter. Specify the tool name and arguments to call any available MCP tool."
     )
     args_schema: Type[BaseModel] = MCPToolInput
     
-    def __init__(self, server_command: str, server_args: Optional[list] = None):
+    def __init__(self, server_adapter: MCPServerAdapter):
         super().__init__()
-        self.server_command = server_command
-        self.server_args = server_args or []
-        self._available_tools = {}
-        self._client_session = None
+        self.server_adapter = server_adapter
+        self._available_tools: Dict[str, MCPTool] = {}
     
-    async def _get_client_session(self):
-        """Get or create MCP client session"""
-        if self._client_session is None:
-            server_params = StdioServerParameters(
-                command=self.server_command,
-                args=self.server_args
-            )
-            self._client_session = await stdio_client(server_params)
-        return self._client_session
+    def _get_available_tools(self) -> Dict[str, MCPTool]:
+        """Get available tools from MCP server adapter"""
+        if not self._available_tools:
+            try:
+                tools_result = self.server_adapter.list_tools()
+                self._available_tools = {tool.name: tool for tool in tools_result.tools}
+            except Exception as e:
+                return {}
+        return self._available_tools
     
-    async def _list_tools(self):
-        """List available tools from MCP server"""
-        async with await self._get_client_session() as (read, write):
-            async with ClientSession(read, write) as session:
-                await session.initialize()
-                tools = await session.list_tools()
-                return {tool.name: tool for tool in tools.tools}
-    
-    async def _call_tool(self, tool_name: str, arguments: Dict[str, Any]):
-        """Call a specific tool on the MCP server"""
-        async with await self._get_client_session() as (read, write):
-            async with ClientSession(read, write) as session:
-                await session.initialize()
-                result = await session.call_tool(tool_name, arguments)
-                return result
-
-    def _run(self, tool_name: str, arguments: Dict[str, Any] = None) -> str:
+    def _run(self, tool_name: str, arguments: Optional[Dict[str, Any]] = None) -> str:
         """Execute MCP tool call"""
         if arguments is None:
             arguments = {}
         
         try:
-            # Run async code in sync context
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
+            # Get available tools first
+            available_tools = self._get_available_tools()
             
-            try:
-                result = loop.run_until_complete(self._call_tool(tool_name, arguments))
+            if tool_name not in available_tools:
+                available_names = list(available_tools.keys())
+                return f"Tool '{tool_name}' not found. Available tools: {available_names}"
+            
+            # Call the tool using the adapter
+            result = self.server_adapter.call_tool(tool_name, arguments)
+            
+            # Format the result
+            if hasattr(result, 'content'):
                 return json.dumps(result.content, indent=2)
-            finally:
-                loop.close()
+            else:
+                return str(result)
                 
         except Exception as e:
             return f"Error calling MCP tool '{tool_name}': {str(e)}"
@@ -86,3 +73,20 @@ class MyCustomTool(BaseTool):
     def _run(self, argument: str) -> str:
         # Implementation goes here
         return "this is an example of a tool output, ignore it and move along."
+
+class HumanInquiryTool(BaseTool):
+    name: str = "Human Inquiry Tool"
+    description: str = (
+        "Use this tool to ask the user clarifying questions "
+        "when critical information is missing or ambiguous. "
+        "This is your ONLY way to get more details from the user."
+    )
+
+    def _run(self, question: str) -> str:
+        """Prompts the user for input with a specific question."""
+        print("\n" + "="*30 + "\n")
+        print(f"🤔 The agent needs your input! 🤔")
+        print(f"Question: {question}")
+        response = input("Your answer: ")
+        print("\n" + "="*30 + "\n")
+        return response
