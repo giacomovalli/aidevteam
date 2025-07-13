@@ -16,12 +16,14 @@ source = { editable = "." }
 dependencies = [
     { name = "crewai", extra = ["tools"] },
     { name = "mcp" },
+    { name = "websockets" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "crewai", extras = ["tools"], specifier = ">=0.140.0,<1.0.0" },
     { name = "mcp", specifier = ">=1.0.0" },
+    { name = "websockets", specifier = ">=15.0.1" },
 ]
 
 [[package]]
